@@ -1,0 +1,10 @@
+version: 1
+work_pool:
+  name: "weather_analisys"
+flows:
+  - name: weather_data_pipeline
+    entrypoint: process_analisys.py:weather_data_pipeline
+    parameters:
+      cities: ["São Paulo", "Curitiba", "Recife"]
+    schedule:
+      cron: "0 * * * *"

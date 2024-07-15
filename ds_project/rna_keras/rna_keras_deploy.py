@@ -1,4 +1,4 @@
-from prefect import task, flow, get_run_logger
+from prefect import task, flow, get_run_logger, serve
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -75,47 +75,50 @@ def print_evaluation(accuracy, f1, recall, conf_matrix):
     print('Recall: ', recall)
     print('Conf Matrix: ', conf_matrix)
 
-@flow(name='Churn Prediction Flow')
+@flow(name='churn-prediction-flow')
 def churn_prediction_flow():
     logger = get_run_logger()
 
     # Importing Data
     df_state = import_data.submit()
-    logger.info(f"SUBMIT: Importing Data Task Status: {df_state.state}")
+    logger.info(f"SUBMIT: Importing Data Task Status: {df_state}")
     df = df_state.result()
     logger.info(f"RESULT: Importing Data Task Status: {df_state}")
 
     # Pre-Process
     preprocess_state = preprocess_data.submit(df)
-    logger.info(f"SUBMIT: Pre-Process Data Task Status: {preprocess_state.state}")
+    logger.info(f"SUBMIT: Pre-Process Data Task Status: {preprocess_state}")
     X, y = preprocess_state.result()
-    logger.info(f"RESULT: Pre-Process Data Task Status: {preprocess_state.state}")
+    logger.info(f"RESULT: Pre-Process Data Task Status: {preprocess_state}")
 
     # Split Data
     split_state = split_data.submit(X, y)
-    logger.info(f"SUBMIT: Split Data Task Status: {split_state.state}")
+    logger.info(f"SUBMIT: Split Data Task Status: {split_state}")
     X_train, X_test, y_train, y_test = split_state.result()
-    logger.info(f"RESULT: Split Data Task Status: {split_state.state}")
+    logger.info(f"RESULT: Split Data Task Status: {split_state}")
 
     # Build Model
     build_state = build_model.submit(input_dim=X_train.shape[1])
-    logger.info(f"SUBMIT: Build Model Task Status: {build_state.state}")
+    logger.info(f"SUBMIT: Build Model Task Status: {build_state}")
     model = build_state.result()
-    logger.info(f"RESULT: Build Model Task Status: {build_state.state}")
+    logger.info(f"RESULT: Build Model Task Status: {build_state}")
 
     # Train Model
     train_state = train_model.submit(model, X_train, y_train)
-    logger.info(f"SUBMIT: Train Model Task Status: {train_state.state}")
+    logger.info(f"SUBMIT: Train Model Task Status: {train_state}")
     trained_model = train_state.result()
-    logger.info(f"RESULT: Train Model Task Status: {train_state.state}")
+    logger.info(f"RESULT: Train Model Task Status: {train_state}")
 
     # Evaluate Model
     evaluate_state = evaluate_model.submit(trained_model, X_test, y_test)
-    logger.info(f"SUBMIT: Evaluate Model Task Status: {evaluate_state.state}")
+    logger.info(f"SUBMIT: Evaluate Model Task Status: {evaluate_state}")
     accuracy, f1, recall, conf_matrix = evaluate_state.result()
-    logger.info(f"RESULT: Evaluate Model Task Status: {evaluate_state.state}")
+    logger.info(f"RESULT: Evaluate Model Task Status: {evaluate_state}")
 
     print_evaluation(accuracy, f1, recall, conf_matrix)
 
 if __name__ == "__main__":
-    churn_prediction_flow()
+    deployment = churn_prediction_flow.to_deployment(name="rna-analisys")
+    deployment.apply()
+    
+    serve(deployment)
