@@ -4,7 +4,7 @@ from prefect.client.schemas.actions import StateType
 import requests
 import asyncio
 
-API_KEY = 'c46b3f66f840089f520cbbf5f9b5b36b'
+API_KEY = ''
 CITIES = ['São Paulo', 'Curitiba', 'Recife']
 
 @task
